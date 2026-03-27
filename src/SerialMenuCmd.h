@@ -68,6 +68,11 @@
 #include <stdio.h> ///required for formatted output conversion to a string of characters
 #include <time.h> ///required for date operating
 
+#ifndef SERIAL
+    #define SERIAL Serial
+#endif
+
+
 /* macros =============================================================================== */
 #define NB_MAX_CHAR_IN_TXT 64 /// maximum number of characters used in strings
 

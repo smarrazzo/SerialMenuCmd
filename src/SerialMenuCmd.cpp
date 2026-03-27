@@ -94,7 +94,7 @@ bool SerialMenuCmd::begin(stMenuCmd list[], uint8_t NbCmd, const char* acPrompt)
     if ((NbCmd == 0) || (list == nullptr) || (acPrompt == nullptr)) {
         // Send to user : "structure, number of commands or text of prompt are
         // invalid"
-        Serial.println(F(TXT_fctMemberBegin_InvalidArguments));
+        SERIAL.println(F(TXT_fctMemberBegin_InvalidArguments));
         return false;
     }
 
@@ -102,7 +102,7 @@ bool SerialMenuCmd::begin(stMenuCmd list[], uint8_t NbCmd, const char* acPrompt)
         if (strlen_P(list[i].itemTxt) > NB_MAX_CHAR_IN_TXT) {
             // Send to user : "one or more menu text exceeds the limit of the number
             // of characters allowed"
-            Serial.println(F(TXT_fctMemberBegin_OversizeCmdTxt));
+            SERIAL.println(F(TXT_fctMemberBegin_OversizeCmdTxt));
             return false;
         }
     }
@@ -110,7 +110,7 @@ bool SerialMenuCmd::begin(stMenuCmd list[], uint8_t NbCmd, const char* acPrompt)
     if (strlen_P(acPrompt) > NB_MAX_CHAR_IN_TXT) {
         // Send to user : "text of prompt exceeds the limit of number of characters
         // allowed"
-        Serial.println(F(TXT_fctMemberBegin_OversizePrompt));
+        SERIAL.println(F(TXT_fctMemberBegin_OversizePrompt));
         return false;
     }
 
@@ -188,14 +188,14 @@ void SerialMenuCmd::ShowMenu(void)
     uint8_t i;
     char sMenuN[NB_MAX_CHAR_IN_TXT];
 
-    Serial.println("");
-    Serial.println("");
+    SERIAL.println("");
+    SERIAL.println("");
     if (mNbCmd == 0) {
         // Send to user : "No Menu in memory"
-        Serial.println(F(TXT_fctMemberShowMenu_NoMenu));
+        SERIAL.println(F(TXT_fctMemberShowMenu_NoMenu));
 
         // Send to user : "PB to interface with library SerialSerialMenuCmd")
-        Serial.println(F(TXT_fctMemberShowMenu_PBInterf));
+        SERIAL.println(F(TXT_fctMemberShowMenu_PBInterf));
         return;
     }
 
@@ -207,7 +207,7 @@ void SerialMenuCmd::ShowMenu(void)
          * time.
          */
         strlcpy_P(sMenuN, mMenuCmds[i].itemTxt, NB_MAX_CHAR_IN_TXT);
-        Serial.println(sMenuN);
+        SERIAL.println(sMenuN);
     }
 }
 
@@ -221,15 +221,15 @@ void SerialMenuCmd::giveCmdPrompt(void)
      */
     char sMenuN[NB_MAX_CHAR_IN_TXT];
 
-    Serial.println(F(""));
+    SERIAL.println(F(""));
     /**
      * @brief strlcpy_P copy a maximum of NbMaxChar - 1 (last character is NULL
      * terminate) According to the IDE, the strlcpy_P function may need special
      * attention because the overriding function is only defined at compile time.
      */
     strlcpy_P(sMenuN, mPromptText, NB_MAX_CHAR_IN_TXT);
-    Serial.print(sMenuN);
-    Serial.print(F(">"));
+    SERIAL.print(sMenuN);
+    SERIAL.print(F(">"));
 }
 
 
@@ -255,11 +255,11 @@ uint8_t SerialMenuCmd::UserRequest(void)
     uint8_t CodeCmd;
 
     CodeCmd = 0;
-    if (Serial.available() > 0) {
-        kbEnter = Serial.read();
+    if (SERIAL.available() > 0) {
+        kbEnter = SERIAL.read();
         // is printer character ?
         if (isGraph(kbEnter)) {
-            Serial.write(kbEnter);
+            SERIAL.write(kbEnter);
             // if there is no memorized code yet
             if (ValideCode == 0) {
                 ValideCode = kbEnter;
@@ -280,7 +280,7 @@ uint8_t SerialMenuCmd::UserRequest(void)
 
                 case ascii_DLE:
                     // Send to user : "-> too many arguments (one character only), !"
-                    Serial.println(F(TXT_fctMemberUserRequest_TooArgs));
+                    SERIAL.println(F(TXT_fctMemberUserRequest_TooArgs));
                     ValideCode = 0;
                     this->giveCmdPrompt();
                     break;
@@ -289,8 +289,8 @@ uint8_t SerialMenuCmd::UserRequest(void)
                     CodeCmd = this->searchCode(ValideCode);
                     if (CodeCmd == 0) {
                         // Send to user : " -> No command code matching !"
-                        Serial.println(F(TXT_fctMemberUserRequest_NoMatching));
-                        Serial.println(F(""));
+                        SERIAL.println(F(TXT_fctMemberUserRequest_NoMatching));
+                        SERIAL.println(F(""));
                         this->giveCmdPrompt();
                     }
                     ValideCode = 0;
@@ -299,10 +299,10 @@ uint8_t SerialMenuCmd::UserRequest(void)
                 ////flush serial buffer, in case of transmission [CR] + [LF]
                 // wait transmit caracter delay
                 delay(2);
-                if (Serial.available() > 0) {
-                    kbEnter = Serial.peek();
+                if (SERIAL.available() > 0) {
+                    kbEnter = SERIAL.peek();
                     if ((kbEnter == ascii_LF) || (kbEnter == ascii_CR)) {
-                        kbEnter = Serial.read();
+                        kbEnter = SERIAL.read();
                     }
                 }
                 break;
@@ -312,12 +312,12 @@ uint8_t SerialMenuCmd::UserRequest(void)
                     // delete if only one character memorized (validecode != ascii_DLE)
                     // otherwise abort
                     if (ValideCode != ascii_DLE) {
-                        Serial.write(kbEnter); // send back backspace character
+                        SERIAL.write(kbEnter); // send back backspace character
                     } else {
                         // Send to user : "-> too many arguments (one character only), !"
-                        Serial.print(F(TXT_fctMemberUserRequest_TooArgs));
+                        SERIAL.print(F(TXT_fctMemberUserRequest_TooArgs));
                         // Send to user : " -> cancellation !"
-                        Serial.println(F(TXT_fctMemberUserRequest_Cancellation));
+                        SERIAL.println(F(TXT_fctMemberUserRequest_Cancellation));
                         this->giveCmdPrompt();
                     }
                     ValideCode = 0;
@@ -326,7 +326,7 @@ uint8_t SerialMenuCmd::UserRequest(void)
 
             case ascii_ESC: // Escape pressed
                 // Send to user : " -> cancellation !"
-                Serial.println(F(TXT_fctMemberUserRequest_Cancellation));
+                SERIAL.println(F(TXT_fctMemberUserRequest_Cancellation));
                 this->giveCmdPrompt();
                 ValideCode = 0;
                 break;
@@ -363,26 +363,26 @@ bool SerialMenuCmd::getStrValue(String& sMessValue)
     char kbEnter;
     uint8_t count = 0;
 
-    Serial.println("");
-    Serial.println(sMessValue);
+    SERIAL.println("");
+    SERIAL.println(sMessValue);
     this->giveCmdPrompt();
     sMessValue = "";
 
     while (fEndOfCapture == false) {
-        if (Serial.available() > 0) {
-            kbEnter = Serial.read();
+        if (SERIAL.available() > 0) {
+            kbEnter = SERIAL.read();
 
             if (isdigit(kbEnter)) // is it digital character ? (0 1 2 3 4 5 6 7 8 9)
             {
                 sMessValue.concat(kbEnter);
-                Serial.write(kbEnter);
+                SERIAL.write(kbEnter);
                 count++;
             } else {
                 switch (kbEnter) {
                 case '+': // sign '+'
                     if (count == 0) {
                         sMessValue.concat(kbEnter);
-                        Serial.write(kbEnter);
+                        SERIAL.write(kbEnter);
                         count++;
                     }
                     break;
@@ -390,7 +390,7 @@ bool SerialMenuCmd::getStrValue(String& sMessValue)
                 case '-': // sign '-'
                     if (count == 0) {
                         sMessValue.concat(kbEnter);
-                        Serial.write(kbEnter);
+                        SERIAL.write(kbEnter);
                         count++;
                     }
                     break;
@@ -399,7 +399,7 @@ bool SerialMenuCmd::getStrValue(String& sMessValue)
                           // the country or the language)
                     if ((count > 0) && (sMessValue.indexOf('.') < 0)) {
                         sMessValue.concat(kbEnter);
-                        Serial.write(kbEnter);
+                        SERIAL.write(kbEnter);
                         count++;
                     }
                     break;
@@ -411,7 +411,7 @@ bool SerialMenuCmd::getStrValue(String& sMessValue)
 
                 case ascii_BS: // Backspace key pressed
                     if (count > 0) {
-                        Serial.write(kbEnter);
+                        SERIAL.write(kbEnter);
                         count--;
                         sMessValue.remove(sMessValue.length() - 1);
                     }
@@ -428,10 +428,10 @@ bool SerialMenuCmd::getStrValue(String& sMessValue)
     ////flush serial buffer, in case of transmission [CR] + [LF]
     // wait transmit caracter delay
     delay(2);
-    if (Serial.available() > 0) {
-        kbEnter = Serial.peek();
+    if (SERIAL.available() > 0) {
+        kbEnter = SERIAL.peek();
         if ((kbEnter == ascii_LF) || (kbEnter == ascii_CR)) {
-            kbEnter = Serial.read();
+            kbEnter = SERIAL.read();
         }
     }
 
@@ -457,19 +457,19 @@ bool SerialMenuCmd::getStrOfChar(String& sMessText)
     char kbEnter;
     uint8_t count = 0;
 
-    Serial.println("");
-    Serial.println(sMessText);
+    SERIAL.println("");
+    SERIAL.println(sMessText);
     this->giveCmdPrompt();
     sMessText = "";
 
     while (fEndOfCapture == false) {
-        if (Serial.available() > 0) {
-            kbEnter = Serial.read();
+        if (SERIAL.available() > 0) {
+            kbEnter = SERIAL.read();
 
             if (isprint(kbEnter)) {
                 if (count < NB_MAX_CHAR_IN_TXT) {
                     sMessText.concat(kbEnter);
-                    Serial.write(kbEnter);
+                    SERIAL.write(kbEnter);
                     count++;
                 }
             } else {
@@ -481,7 +481,7 @@ bool SerialMenuCmd::getStrOfChar(String& sMessText)
 
                 case ascii_BS: // Backspace key pressed
                     if (count > 0) {
-                        Serial.write(kbEnter);
+                        SERIAL.write(kbEnter);
                         count--;
                         sMessText.remove(sMessText.length() - 1);
                     }
@@ -498,10 +498,10 @@ bool SerialMenuCmd::getStrOfChar(String& sMessText)
     ////flush serial buffer, in case of transmission [CR] + [LF]
     // wait transmit caracter delay
     delay(2);
-    if (Serial.available() > 0) {
-        kbEnter = Serial.peek();
+    if (SERIAL.available() > 0) {
+        kbEnter = SERIAL.peek();
         if ((kbEnter == ascii_LF) || (kbEnter == ascii_CR)) {
-            kbEnter = Serial.read();
+            kbEnter = SERIAL.read();
         }
     }
 
@@ -532,7 +532,7 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
     // Check string length -> AAAA-MM-DDThh:mm:ss (19 characters max.)
     if (sDTgStrChar.length() > 19) {
         // Send to user : "-> too many characters in string date/time !"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_TooChar));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_TooChar));
         return false;
     }
 
@@ -549,26 +549,26 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
 
     if ((delimHyphen1 == NULL) || (delimHyphen2 == NULL)) {
         // Send to user : " -> Error of delimiter '-' in date"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrHyphen));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrHyphen));
         return false;
     }
 
     if (delimT == NULL) {
         // Send to user : " -> Error of delimiter 'T' Between date and time"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrT));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrT));
         return false;
     }
 
     if ((delim2pt1 == NULL) || (delim2pt2 == 0)) {
         // Send to user : " -> Error of delimiter ':' in time"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrColon));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrColon));
         return false;
     }
 
     *delimHyphen1 = 0;
     if (DTgChekField(delimHyphen1, buf, 4) == false) {
         // Send to user : " -> Year field format error"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrYearFd));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrYearFd));
         return false;
     }
     delimHyphen1++;
@@ -576,7 +576,7 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
     *delimHyphen2 = 0;
     if (DTgChekField(delimHyphen2, delimHyphen1, 2) == false) {
         // Send to user : " -> Month field format error"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrMonthFd));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrMonthFd));
         return false;
     }
     delimHyphen2++;
@@ -584,7 +584,7 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
     *delimT = 0;
     if (DTgChekField(delimT, delimHyphen2, 2) == false) {
         // Send to user : " -> Day field format error"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrDayFd));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrDayFd));
         return false;
     }
     delimT++;
@@ -592,7 +592,7 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
     *delim2pt1 = 0;
     if (DTgChekField(delim2pt1, delimT, 2) == false) {
         // Send to user : " -> Hour field format error"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrHourFd));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrHourFd));
         return false;
     }
     delim2pt1++;
@@ -600,7 +600,7 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
     *delim2pt2 = 0;
     if (DTgChekField(delim2pt2, delim2pt1, 2) == false) {
         // Send to user : " -> Minute field format error"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrMinuteFd));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrMinuteFd));
         return false;
     }
     delim2pt2++;
@@ -608,7 +608,7 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
     // delimEOS already to 0 (end of string char)
     if (DTgChekField(delimEOS, delim2pt1, 2) == false) {
         // Send to user : " -> Second field format error"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_ErrSecondFd));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrSecondFd));
         return false;
     }
 
@@ -625,26 +625,26 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
 
     if ((GdtLocal.u16Year < 1970) || (GdtLocal.u16Year > 9999)) {
         // Send to user : " -> Year out of range, it must be between 1970 and 9999"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_YearOutRange));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_YearOutRange));
         return false;
     }
 
     if ((GdtLocal.u8Month < 1) || (GdtLocal.u8Month > 12)) {
         // Send to user : " -> Month out of range, it must be between 1 and 12"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_MonthOutRange));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_MonthOutRange));
         return false;
     }
 
     if ((GdtLocal.u8Day < 1) || (GdtLocal.u8Day > 31)) {
         // Send to user : " -> Day out of range, it must be between 1 and 31"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_DayOutRange));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_DayOutRange));
         return false;
     }
 
     if (GdtLocal.u8Month == 4 || GdtLocal.u8Month == 6 || GdtLocal.u8Month == 9 || GdtLocal.u8Month == 11) {
         if (GdtLocal.u8Day > 30) {
             // Send to user : " -> this month only has 30 days"
-            Serial.print(F(TXT_fctMemberConvStrToDTg_Month30day));
+            SERIAL.print(F(TXT_fctMemberConvStrToDTg_Month30day));
             return false;
         }
     }
@@ -653,13 +653,13 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
         if (bLeap == true) {
             if (GdtLocal.u8Day > 29) {
                 // Send to user : " -> February only has 29 days in leap year"
-                Serial.print(F(TXT_fctMemberConvStrToDTg_febLeap));
+                SERIAL.print(F(TXT_fctMemberConvStrToDTg_febLeap));
                 return false;
             }
         } else {
             if (GdtLocal.u8Day > 28) {
                 // Send to user : " -> February only has 28 days out of leap year"
-                Serial.print(F(TXT_fctMemberConvStrToDTg_febOutLeap));
+                SERIAL.print(F(TXT_fctMemberConvStrToDTg_febOutLeap));
                 return false;
             }
         }
@@ -667,19 +667,19 @@ bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
 
     if ((GdtLocal.u8Hour < 0) || (GdtLocal.u8Hour > 23)) {
         // Send to user : " -> Hour out of range, it must be between 0 and 23"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_HourOutRange));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_HourOutRange));
         return false;
     }
 
     if ((GdtLocal.u8Min < 0) || (GdtLocal.u8Min > 59)) {
         // Send to user : " -> Minute out of range, it must be between 0 and 59"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_MinuteOutRange));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_MinuteOutRange));
         return false;
     }
 
     if ((GdtLocal.u8Sec < 0) || (GdtLocal.u8Sec > 59)) {
         // Send to user : " -> Second out of range, it must be between 0 and 59"
-        Serial.print(F(TXT_fctMemberConvStrToDTg_SecondOutRange));
+        SERIAL.print(F(TXT_fctMemberConvStrToDTg_SecondOutRange));
         return false;
     }
 
