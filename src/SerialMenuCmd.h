@@ -70,7 +70,7 @@
 
 #ifdef SERIAL1
     #define SERIAL Serial1
-#elseif defined(SERIAL2)
+#elif defined(SERIAL2)
     #define SERIAL Serial2
 #else
     #define SERIAL Serial
