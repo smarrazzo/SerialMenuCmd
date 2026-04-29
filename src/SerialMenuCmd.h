@@ -77,7 +77,7 @@
 #endif
 
 /* macros =============================================================================== */
-#define NB_MAX_CHAR_IN_TXT 64 /// maximum number of characters used in strings
+#define NB_MAX_CHAR_IN_TXT 128 /// maximum number of characters used in strings
 
 enum MenuCmdReturnCodeError {
     MENUCMD_ERROR_OVERRANGE_INDEX = -1 /// error return code, see implementation of OpsCallback member function
@@ -108,28 +108,6 @@ typedef struct
     uint8_t itemCode;
     PtFunc itemPtFunct;
 } stMenuCmd;
-
-/**
- * @struct structure that contains the individual elements of a date/time group :
- *         - u16Year, 2 bytes, to specify the year (0 to 65535)
- *         - u8Month, 1 byte, to specify the month (1 to 12)
- *         - u8Day, 1 byte, to specify the day (1 to 31)
- *         - u8Hour, 1 byte, to specify the hour (00 to 23)
- *         - u8Min, 1 byte, to specify the minute (00 to 59)
- *         - u8Sec, 1 Byte, to specify the second (00 to 59)
- *
- *         Outside lower and upper limit the date/time group is considered wrong
- */
-typedef struct
-{
-    uint16_t u16Year;
-    uint8_t u8Month;
-    uint8_t u8Day;
-    uint8_t u8Hour;
-    uint8_t u8Min;
-    uint8_t u8Sec;
-    //} stDTGi;
-} stDateTimeGroup;
 
 /**
  * @class Serial Menu Command Library
@@ -194,49 +172,6 @@ public:
      * @return uint8_t 0 = no code, >0 command number in the list
      */
     uint8_t UserRequest(void);
-
-    /**
-     * @fn getting a string object containing a numeric value
-     *
-     * @param sMessValue
-     *        - Enter function = Message to user to guide him
-     *        - output function = string containing numéric value
-     * @return true   parameter containts a value
-     * @return false  aborted operation
-     */
-    bool getStrValue(String& sMessValue);
-
-    /**
-     * @fn Getting a string object containing a string of character
-     *        - Enter function = Message to user to guide him
-     *        - output function = string containing string of character
-     * @param sMessText
-     *
-     * @return true  parameter containts a string of character
-     * @return false aborted operation
-     */
-    bool getStrOfChar(String& sMessText);
-
-    /**
-     * @fn Convert a string object to a date-time group structure.
-     *        a date-time group (DTg) includes : Year, Month, day, Hour, minute, second.
-     *        DTg is formated in ISO8601 in the object string.
-     *        YYYY-MM-DDThh:mm:ss
-     *        YYYY (4 char.) -> Year
-     *        MM (2 char.) -> Month
-     *        DD (2 char.) -> Day
-     *        T -> letter T
-     *        hh (2 char.) -> Hour
-     *        mm (2 char.) -> minute
-     *        ss (2 char.) -> second
-     *
-     * @param sDTgStrChar String object including a string of max 20 characters in ISO 8601 format
-     * @param stRet struct stDateTimeGroup
-     * @return true Successful conversion
-     * @return false failed conversion (do not use struct stDateTimeGroup)
-     */
-    // bool ConvStrToDTg(char *DTgString, stDTGi &stRet);
-    bool ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet);
 
     /**
      * @fn give command prompt to user

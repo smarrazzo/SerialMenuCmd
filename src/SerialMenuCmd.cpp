@@ -64,11 +64,6 @@
 #define ascii_BS 0x08 // Backspace
 
 
-/* Local function prototype ==================================================================== */
-// implementation at end of file
-bool DTgChekField(char* strStop, char* strStart, uint8_t nbChar);
-
-
 /* Implementation member functions ============================================================= */
 SerialMenuCmd::SerialMenuCmd()
 {
@@ -94,7 +89,7 @@ bool SerialMenuCmd::begin(stMenuCmd list[], uint8_t NbCmd, const char* acPrompt)
     if ((NbCmd == 0) || (list == nullptr) || (acPrompt == nullptr)) {
         // Send to user : "structure, number of commands or text of prompt are
         // invalid"
-        SERIAL.println(F(TXT_fctMemberBegin_InvalidArguments));
+        //SERIAL.println(F(TXT_fctMemberBegin_InvalidArguments));
         return false;
     }
 
@@ -102,7 +97,7 @@ bool SerialMenuCmd::begin(stMenuCmd list[], uint8_t NbCmd, const char* acPrompt)
         if (strlen_P(list[i].itemTxt) > NB_MAX_CHAR_IN_TXT) {
             // Send to user : "one or more menu text exceeds the limit of the number
             // of characters allowed"
-            SERIAL.println(F(TXT_fctMemberBegin_OversizeCmdTxt));
+            //SERIAL.println(F(TXT_fctMemberBegin_OversizeCmdTxt));
             return false;
         }
     }
@@ -110,7 +105,7 @@ bool SerialMenuCmd::begin(stMenuCmd list[], uint8_t NbCmd, const char* acPrompt)
     if (strlen_P(acPrompt) > NB_MAX_CHAR_IN_TXT) {
         // Send to user : "text of prompt exceeds the limit of number of characters
         // allowed"
-        SERIAL.println(F(TXT_fctMemberBegin_OversizePrompt));
+        //SERIAL.println(F(TXT_fctMemberBegin_OversizePrompt));
         return false;
     }
 
@@ -189,13 +184,12 @@ void SerialMenuCmd::ShowMenu(void)
     char sMenuN[NB_MAX_CHAR_IN_TXT];
 
     SERIAL.println("");
-    SERIAL.println("");
     if (mNbCmd == 0) {
         // Send to user : "No Menu in memory"
-        SERIAL.println(F(TXT_fctMemberShowMenu_NoMenu));
+        //SERIAL.println(F(TXT_fctMemberShowMenu_NoMenu));
 
         // Send to user : "PB to interface with library SerialSerialMenuCmd")
-        SERIAL.println(F(TXT_fctMemberShowMenu_PBInterf));
+        //SERIAL.println(F(TXT_fctMemberShowMenu_PBInterf));
         return;
     }
 
@@ -206,8 +200,12 @@ void SerialMenuCmd::ShowMenu(void)
          * attention because the overriding function is only defined at compile
          * time.
          */
-        strlcpy_P(sMenuN, mMenuCmds[i].itemTxt, NB_MAX_CHAR_IN_TXT);
-        SERIAL.println(sMenuN);
+        if(char(mMenuCmds[i].itemCode)!= 'R' && char(mMenuCmds[i].itemCode) !='@'){ 
+            strlcpy_P(sMenuN, mMenuCmds[i].itemTxt, NB_MAX_CHAR_IN_TXT);           
+            SERIAL.print(char(mMenuCmds[i].itemCode));
+            SERIAL.print(F(" : "));
+            SERIAL.println(sMenuN);
+        }
     }
 }
 
@@ -280,7 +278,7 @@ uint8_t SerialMenuCmd::UserRequest(void)
 
                 case ascii_DLE:
                     // Send to user : "-> too many arguments (one character only), !"
-                    SERIAL.println(F(TXT_fctMemberUserRequest_TooArgs));
+                    //SERIAL.println(F(TXT_fctMemberUserRequest_TooArgs));
                     ValideCode = 0;
                     this->giveCmdPrompt();
                     break;
@@ -289,7 +287,7 @@ uint8_t SerialMenuCmd::UserRequest(void)
                     CodeCmd = this->searchCode(ValideCode);
                     if (CodeCmd == 0) {
                         // Send to user : " -> No command code matching !"
-                        SERIAL.println(F(TXT_fctMemberUserRequest_NoMatching));
+                        //SERIAL.println(F(TXT_fctMemberUserRequest_NoMatching));
                         SERIAL.println(F(""));
                         this->giveCmdPrompt();
                     }
@@ -315,9 +313,9 @@ uint8_t SerialMenuCmd::UserRequest(void)
                         SERIAL.write(kbEnter); // send back backspace character
                     } else {
                         // Send to user : "-> too many arguments (one character only), !"
-                        SERIAL.print(F(TXT_fctMemberUserRequest_TooArgs));
+                        //SERIAL.print(F(TXT_fctMemberUserRequest_TooArgs));
                         // Send to user : " -> cancellation !"
-                        SERIAL.println(F(TXT_fctMemberUserRequest_Cancellation));
+                        //SERIAL.println(F(TXT_fctMemberUserRequest_Cancellation));
                         this->giveCmdPrompt();
                     }
                     ValideCode = 0;
@@ -326,7 +324,7 @@ uint8_t SerialMenuCmd::UserRequest(void)
 
             case ascii_ESC: // Escape pressed
                 // Send to user : " -> cancellation !"
-                SERIAL.println(F(TXT_fctMemberUserRequest_Cancellation));
+                //SERIAL.println(F(TXT_fctMemberUserRequest_Cancellation));
                 this->giveCmdPrompt();
                 ValideCode = 0;
                 break;
@@ -342,393 +340,3 @@ uint8_t SerialMenuCmd::UserRequest(void)
     return CodeCmd;
 }
 
-
-bool SerialMenuCmd::getStrValue(String& sMessValue)
-{
-    /**
-     * @brief this function retrieves the serial flux. if character
-     *        is "digital" (0123456789) or sign + or - (as first
-     *        received character) or decimal separator '.' (a single
-     *        occurence), it stored.
-     *        the memorized character string is returned when user
-     *        valid by Enter key. the function return 'true' value.
-     *        Backspace key delete the last character.
-     *        Escape key interrupts the sequence : the function ends
-     *        by returning 'false' value.
-     *
-     *        Note : this function is blocking.
-     */
-
-    bool fEndOfCapture = false;
-    char kbEnter;
-    uint8_t count = 0;
-
-    SERIAL.println("");
-    SERIAL.println(sMessValue);
-    this->giveCmdPrompt();
-    sMessValue = "";
-
-    while (fEndOfCapture == false) {
-        if (SERIAL.available() > 0) {
-            kbEnter = SERIAL.read();
-
-            if (isdigit(kbEnter)) // is it digital character ? (0 1 2 3 4 5 6 7 8 9)
-            {
-                sMessValue.concat(kbEnter);
-                SERIAL.write(kbEnter);
-                count++;
-            } else {
-                switch (kbEnter) {
-                case '+': // sign '+'
-                    if (count == 0) {
-                        sMessValue.concat(kbEnter);
-                        SERIAL.write(kbEnter);
-                        count++;
-                    }
-                    break;
-
-                case '-': // sign '-'
-                    if (count == 0) {
-                        sMessValue.concat(kbEnter);
-                        SERIAL.write(kbEnter);
-                        count++;
-                    }
-                    break;
-
-                case '.': // decimal separator (warning it is not the same depending on
-                          // the country or the language)
-                    if ((count > 0) && (sMessValue.indexOf('.') < 0)) {
-                        sMessValue.concat(kbEnter);
-                        SERIAL.write(kbEnter);
-                        count++;
-                    }
-                    break;
-
-                case ascii_CR:
-                case ascii_LF: // Enter key pressed
-                    fEndOfCapture = true;
-                    break;
-
-                case ascii_BS: // Backspace key pressed
-                    if (count > 0) {
-                        SERIAL.write(kbEnter);
-                        count--;
-                        sMessValue.remove(sMessValue.length() - 1);
-                    }
-                    break;
-
-                case ascii_ESC: // Escape key pressed
-                    sMessValue = "";
-                    return false;
-                    break;
-                }
-            }
-        }
-    }
-    ////flush serial buffer, in case of transmission [CR] + [LF]
-    // wait transmit caracter delay
-    delay(2);
-    if (SERIAL.available() > 0) {
-        kbEnter = SERIAL.peek();
-        if ((kbEnter == ascii_LF) || (kbEnter == ascii_CR)) {
-            kbEnter = SERIAL.read();
-        }
-    }
-
-    return true;
-}
-
-
-bool SerialMenuCmd::getStrOfChar(String& sMessText)
-{
-    /**
-     * @brief this function retrieves the serial flux. if character
-     *        is "printable", it stored.
-     *        the memorized character string is returned when user
-     *        valid by Enter key, the function return 'true' value.
-     *        Backspace key delete the last character.
-     *        Escape key interrupts the sequence : the function ends
-     *        by returning 'false' value
-     *
-     *        Note : this function is blocking.
-     */
-
-    bool fEndOfCapture = false;
-    char kbEnter;
-    uint8_t count = 0;
-
-    SERIAL.println("");
-    SERIAL.println(sMessText);
-    this->giveCmdPrompt();
-    sMessText = "";
-
-    while (fEndOfCapture == false) {
-        if (SERIAL.available() > 0) {
-            kbEnter = SERIAL.read();
-
-            if (isprint(kbEnter)) {
-                if (count < NB_MAX_CHAR_IN_TXT) {
-                    sMessText.concat(kbEnter);
-                    SERIAL.write(kbEnter);
-                    count++;
-                }
-            } else {
-                switch (kbEnter) {
-                case ascii_CR:
-                case ascii_LF: // Enter key pressed
-                    fEndOfCapture = true;
-                    break;
-
-                case ascii_BS: // Backspace key pressed
-                    if (count > 0) {
-                        SERIAL.write(kbEnter);
-                        count--;
-                        sMessText.remove(sMessText.length() - 1);
-                    }
-                    break;
-
-                case ascii_ESC: // Escape key pressed
-                    sMessText = "";
-                    return false;
-                    break;
-                }
-            }
-        }
-    }
-    ////flush serial buffer, in case of transmission [CR] + [LF]
-    // wait transmit caracter delay
-    delay(2);
-    if (SERIAL.available() > 0) {
-        kbEnter = SERIAL.peek();
-        if ((kbEnter == ascii_LF) || (kbEnter == ascii_CR)) {
-            kbEnter = SERIAL.read();
-        }
-    }
-
-    return true;
-}
-
-
-bool SerialMenuCmd::ConvStrToDTg(String& sDTgStrChar, stDateTimeGroup& stRet)
-{
-    /**
-     * @brief This function Convert a string object to a date-time group structure
-     *        It proceeds as follows :
-     *        1- Check string length
-     *        2- locate delimiters (-, T, :)
-     *        3- check their position
-     *        4- convert strings to integer
-     *        5- check date and hour (bounds, bi-weekly year)
-     *        6- transfer data to the return address
-     *
-     *        In the event of an error, the function returns false. In this case,
-     *        the return structure should not be used.
-     */
-    char buf[20];
-    char *delimHyphen1, *delimHyphen2, *delimT, *delim2pt1, *delim2pt2, *delimEOS;
-    stDateTimeGroup GdtLocal;
-    bool bLeap;
-
-    // Check string length -> AAAA-MM-DDThh:mm:ss (19 characters max.)
-    if (sDTgStrChar.length() > 19) {
-        // Send to user : "-> too many characters in string date/time !"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_TooChar));
-        return false;
-    }
-
-    // Convert string in char array
-    sDTgStrChar.toCharArray(buf, sDTgStrChar.length() + 1);
-
-    // Search and locate all delimiter
-    delimHyphen1 = strchr(buf, '-');
-    delimHyphen2 = strchr(delimHyphen1 + 1, '-');
-    delimT = strchr(delimHyphen2 + 1, 'T');
-    delim2pt1 = strchr(delimT + 1, ':');
-    delim2pt2 = strchr(delim2pt1 + 1, ':');
-    delimEOS = buf + strlen(buf) + 1;
-
-    if ((delimHyphen1 == NULL) || (delimHyphen2 == NULL)) {
-        // Send to user : " -> Error of delimiter '-' in date"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrHyphen));
-        return false;
-    }
-
-    if (delimT == NULL) {
-        // Send to user : " -> Error of delimiter 'T' Between date and time"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrT));
-        return false;
-    }
-
-    if ((delim2pt1 == NULL) || (delim2pt2 == 0)) {
-        // Send to user : " -> Error of delimiter ':' in time"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrColon));
-        return false;
-    }
-
-    *delimHyphen1 = 0;
-    if (DTgChekField(delimHyphen1, buf, 4) == false) {
-        // Send to user : " -> Year field format error"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrYearFd));
-        return false;
-    }
-    delimHyphen1++;
-
-    *delimHyphen2 = 0;
-    if (DTgChekField(delimHyphen2, delimHyphen1, 2) == false) {
-        // Send to user : " -> Month field format error"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrMonthFd));
-        return false;
-    }
-    delimHyphen2++;
-
-    *delimT = 0;
-    if (DTgChekField(delimT, delimHyphen2, 2) == false) {
-        // Send to user : " -> Day field format error"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrDayFd));
-        return false;
-    }
-    delimT++;
-
-    *delim2pt1 = 0;
-    if (DTgChekField(delim2pt1, delimT, 2) == false) {
-        // Send to user : " -> Hour field format error"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrHourFd));
-        return false;
-    }
-    delim2pt1++;
-
-    *delim2pt2 = 0;
-    if (DTgChekField(delim2pt2, delim2pt1, 2) == false) {
-        // Send to user : " -> Minute field format error"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrMinuteFd));
-        return false;
-    }
-    delim2pt2++;
-
-    // delimEOS already to 0 (end of string char)
-    if (DTgChekField(delimEOS, delim2pt1, 2) == false) {
-        // Send to user : " -> Second field format error"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_ErrSecondFd));
-        return false;
-    }
-
-    // Convert string to number
-    GdtLocal.u16Year = atoi(buf);
-    GdtLocal.u8Month = atoi(delimHyphen1);
-    GdtLocal.u8Day = atoi(delimHyphen2);
-    GdtLocal.u8Hour = atoi(delimT);
-    GdtLocal.u8Min = atoi(delim2pt1);
-    GdtLocal.u8Sec = atoi(delim2pt2);
-
-    // Determine if leap year (bLeap = 1 if year is leap)
-    bLeap = ((GdtLocal.u16Year % 4 == 0) && (GdtLocal.u16Year % 100 != 0)) || (GdtLocal.u16Year % 400 == 0);
-
-    if ((GdtLocal.u16Year < 1970) || (GdtLocal.u16Year > 9999)) {
-        // Send to user : " -> Year out of range, it must be between 1970 and 9999"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_YearOutRange));
-        return false;
-    }
-
-    if ((GdtLocal.u8Month < 1) || (GdtLocal.u8Month > 12)) {
-        // Send to user : " -> Month out of range, it must be between 1 and 12"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_MonthOutRange));
-        return false;
-    }
-
-    if ((GdtLocal.u8Day < 1) || (GdtLocal.u8Day > 31)) {
-        // Send to user : " -> Day out of range, it must be between 1 and 31"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_DayOutRange));
-        return false;
-    }
-
-    if (GdtLocal.u8Month == 4 || GdtLocal.u8Month == 6 || GdtLocal.u8Month == 9 || GdtLocal.u8Month == 11) {
-        if (GdtLocal.u8Day > 30) {
-            // Send to user : " -> this month only has 30 days"
-            SERIAL.print(F(TXT_fctMemberConvStrToDTg_Month30day));
-            return false;
-        }
-    }
-
-    if (GdtLocal.u8Month == 2) {
-        if (bLeap == true) {
-            if (GdtLocal.u8Day > 29) {
-                // Send to user : " -> February only has 29 days in leap year"
-                SERIAL.print(F(TXT_fctMemberConvStrToDTg_febLeap));
-                return false;
-            }
-        } else {
-            if (GdtLocal.u8Day > 28) {
-                // Send to user : " -> February only has 28 days out of leap year"
-                SERIAL.print(F(TXT_fctMemberConvStrToDTg_febOutLeap));
-                return false;
-            }
-        }
-    }
-
-    if ((GdtLocal.u8Hour < 0) || (GdtLocal.u8Hour > 23)) {
-        // Send to user : " -> Hour out of range, it must be between 0 and 23"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_HourOutRange));
-        return false;
-    }
-
-    if ((GdtLocal.u8Min < 0) || (GdtLocal.u8Min > 59)) {
-        // Send to user : " -> Minute out of range, it must be between 0 and 59"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_MinuteOutRange));
-        return false;
-    }
-
-    if ((GdtLocal.u8Sec < 0) || (GdtLocal.u8Sec > 59)) {
-        // Send to user : " -> Second out of range, it must be between 0 and 59"
-        SERIAL.print(F(TXT_fctMemberConvStrToDTg_SecondOutRange));
-        return false;
-    }
-
-    // Copy in struct passed by address
-    memcpy(&stRet, (void*)&GdtLocal, sizeof(stDateTimeGroup));
-
-    return true;
-}
-
-
-/**
- * @fn verification of fields (an array of char) representing a number :
- *     - field not empty
- *     - numbers of characters
- *     - characters only numbers
- *     This function is call only by ConvStrToDTg menber function
- *
- * @param strStop   end of array char address
- * @param strStart  start of array char address
- * @param nbChar    maximum number of characters contained in the string
- * @return true     Field valid
- * @return false    Field error
- */
-bool DTgChekField(char* strStop, char* strStart, uint8_t nbChar)
-{
-    uint8_t i, lenField;
-
-    lenField = strlen(strStart);
-
-    // if none char
-    if (lenField == 0) {
-        return false;
-    }
-
-    // if the number of characters does not match
-    if (lenField != nbChar) {
-        return false;
-    }
-
-    // if each char is not a number
-    for (i = 0; i < strlen(strStart); i++) {
-        if (isDigit(strStart[i]) == false) {
-            return false;
-        }
-    }
-
-    if (strStart + lenField > strStop) {
-        return false;
-    }
-
-    return true;
-}
